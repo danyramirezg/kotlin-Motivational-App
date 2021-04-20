@@ -8,47 +8,43 @@ import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonArrayRequest
 import com.dany.motivationalapp.controller.AppController
+import com.dany.motivationalapp.controller.QuoteData
+import com.dany.motivationalapp.controller.QuoteListAsyncResponse
+import com.dany.motivationalapp.controller.QuoteViewPagerAdapter
 import com.dany.motivationalapp.model.Quote
+import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONArray
 import org.json.JSONException
 
 class MainActivity : AppCompatActivity() {
+    lateinit var quoteViewPagerAdapter: QuoteViewPagerAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val url = "https://raw.githubusercontent.com/pdichone/UIUX-Android-Course/master/Quotes.json%20"
-        getInfo(url)
-    }
-
-    // Fetching the information.
-    fun getInfo(url: String) {
-
-        val quoteRequest = JsonArrayRequest(Request.Method.GET, url, null, Response.Listener
-        { response: JSONArray ->
-            try {
-
-                //Loop through the array:
-                for(i in 0 until response.length()){
-
-                    // Getting the Json Object inside the array:
-                    var quoteObject = response.getJSONObject(i)
-                    var quote = Quote(quoteObject.getString("quote"), quoteObject.getString("name"))
-
-                    Log.d("===>Author:", quote.author)
-//                    Log.d("===>Quotes:", quote.quote)
+        quoteViewPagerAdapter = QuoteViewPagerAdapter(supportFragmentManager, getFragments())
+        viewPager.adapter = quoteViewPagerAdapter
                 }
-            } catch (e: JSONException) {
-                e.printStackTrace()
+
+    fun getFragments(): ArrayList<QuoteFragment> {
+
+//        lateinit var fragmentList: ArrayList<QuoteFragment>
+
+        val fragmentList = ArrayList<QuoteFragment>()
+
+        QuoteData().getQuetes(object : QuoteListAsyncResponse {
+            override fun processFinished(quotes: ArrayList<Quote>) {
+
+                (0 until quotes.size).mapTo(fragmentList) {
+                    QuoteFragment.newInstance(
+                        quotes[it].quote,
+                        quotes[it].author
+                    )
+                }
+                quoteViewPagerAdapter.notifyDataSetChanged()
             }
-        },
-            Response.ErrorListener { error: VolleyError ->
-                try {
-                    Log.d("Error", error.toString())
-                } catch (e: JSONException) {
-                    e.printStackTrace()
-                }
-            })
-        AppController.instance!!.addToRequestQueue(quoteRequest)
+        })
+        return fragmentList
     }
 }
